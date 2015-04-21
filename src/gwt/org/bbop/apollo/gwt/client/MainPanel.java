@@ -413,6 +413,7 @@ public class MainPanel extends Composite {
         url += "annotator/?" ;
         // TODO: I need to get the current location
         url += "loc="+currentSequence.getName()+":1..1000" ;
+        url += "&organism="+currentOrganism.getId();
         url += "&highlight=0";
         url += "&tracklist=0";
         url += "&tracks=" ;
