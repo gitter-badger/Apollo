@@ -17,6 +17,7 @@ class JbrowseController {
 
     def sequenceService
     def permissionService
+    def preferenceService
 
 
     // is typically checking for trackData.json
@@ -31,6 +32,26 @@ class JbrowseController {
             return;
         }
         render file.text
+    }
+
+    def indexPassThrough(){
+        println "just passing through! "
+
+        println "is there a current user? ${permissionService.currentUser}"
+        if(!permissionService.currentUser){
+//            redirect controller: "annotator", action: "index"
+            redirect uri:"/"
+            return
+        }
+
+
+        if(params.organism){
+            Organism organism = Organism.findById(params.organism as Long)
+            preferenceService.setCurrentOrganism(permissionService.currentUser,organism)
+        }
+
+
+        redirect uri: "/jbrowse/index.html"
     }
 
     private String getJBrowseDirectoryForSession() {
