@@ -18,6 +18,7 @@ class UrlMappings {
         // set this routing here
         //"/jbrowse"(controller: "jbrowse", action: "index")
 //        "/jbrowse/"(uri: "/jbrowse/index.html")
+        "/jbrowse//index.html"(controller: "jbrowse",action: "indexPassThrough")
         "/jbrowse/"(controller: "jbrowse",action: "indexPassThrough")
         "/jbrowse/data/${fileName}"(controller: "jbrowse", action: "data")
         "/jbrowse/data/bigwig/${fileName}"(controller: "jbrowse", action: "bigwig")

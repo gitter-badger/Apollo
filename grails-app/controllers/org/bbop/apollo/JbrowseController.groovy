@@ -34,12 +34,9 @@ class JbrowseController {
         render file.text
     }
 
-    def indexPassThrough(){
-        println "just passing through! "
 
-        println "is there a current user? ${permissionService.currentUser}"
+    def indexPassThrough(){
         if(!permissionService.currentUser){
-//            redirect controller: "annotator", action: "index"
             redirect uri:"/"
             return
         }
@@ -57,7 +54,11 @@ class JbrowseController {
     private String getJBrowseDirectoryForSession() {
         // TODO: move to shiro
         Session session = SecurityUtils.subject.getSession(false)
-        String organismJBrowseDirectory = session.getAttribute(FeatureStringEnum.ORGANISM_JBROWSE_DIRECTORY.value)
+        String organismJBrowseDirectory
+        if(session && session.attributeKeys.contains(FeatureStringEnum.ORGANISM_JBROWSE_DIRECTORY.value)) {
+            organismJBrowseDirectory = session.getAttribute(FeatureStringEnum.ORGANISM_JBROWSE_DIRECTORY.value)
+        }
+
         if (!organismJBrowseDirectory) {
             for (Organism organism in Organism.all) {
                 // load if not
@@ -97,6 +98,7 @@ class JbrowseController {
                 }
             }
         }
+
 
         return organismJBrowseDirectory
     }
@@ -218,6 +220,10 @@ class JbrowseController {
      *
      */
     def data(String fileName) {
+        if(!permissionService.currentUser){
+            redirect uri:"/"
+            return
+        }
         log.debug "data"
         String dataDirectory = getJBrowseDirectoryForSession()
         log.debug "dataDir: ${dataDirectory}"
