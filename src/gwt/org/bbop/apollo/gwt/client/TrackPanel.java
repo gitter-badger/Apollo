@@ -291,6 +291,19 @@ public class TrackPanel extends Composite {
         updateTracks(returnValueObject);
     }
 
+    public List<String> getTrackList(){
+        if(trackInfoList.size()==0){
+            reload() ;
+        }
+        List<String> trackListArray = new ArrayList<>();
+        for(TrackInfo trackInfo : trackInfoList){
+            if(trackInfo.getVisible()){
+                trackListArray.add(trackInfo.getName());
+            }
+        }
+        return trackListArray;
+    }
+
     public static void updateTracks(JSONArray array) {
         trackInfoList.clear();
 

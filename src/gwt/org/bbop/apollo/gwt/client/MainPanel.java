@@ -60,7 +60,6 @@ public class MainPanel extends Composite {
     private List<SequenceInfo> currentSequenceList; // sequence list for current organisms
     private SequenceInfo currentSequence;
     private List<OrganismInfo> organismInfoList; // list of organisms for user
-    private Annotator rootAnnotator;
     private static MainPanel instance;
 
 
@@ -108,27 +107,15 @@ public class MainPanel extends Composite {
 
 
     public static MainPanel getInstance() {
-        if (instance != null) {
-            return instance;
-        } else {
-            Window.alert("No instance available . . initialized?");
-            return null;
-        }
-    }
-
-    public static MainPanel getInstance(Annotator annotator) {
         if (instance == null) {
-            instance = new MainPanel(annotator);
+            instance = new MainPanel();
         }
-        return instance;
+        return instance ;
     }
 
-
-    MainPanel(Annotator annotator) {
-        this.rootAnnotator = annotator;
+    private MainPanel() {
         instance = this;
         exportStaticMethod();
-//        sequenceList = new SuggestBox(sequenceOracle);
 
         initWidget(ourUiBinder.createAndBindUi(this));
 
@@ -137,7 +124,6 @@ public class MainPanel extends Composite {
         frame.getElement().setAttribute("id", frame.getName());
 
         Dictionary dictionary = Dictionary.getDictionary("Options");
-//        rootUrl = dictionary.get("rootUrl");
         showFrame = dictionary.get("showFrame") != null && dictionary.get("showFrame").contains("true");
 
 
@@ -420,7 +406,26 @@ public class MainPanel extends Composite {
 
     @UiHandler("generateLink")
     public void generateLink(ClickEvent clickEvent) {
-        UrlDialogBox urlDialogBox = new UrlDialogBox(frame.getUrl());
+
+//        http://localhost:8080/apollo/annotator/?loc=GroupUn1774%3A1..3022&highlight=&tracklist=0&tracks=DNA%2CAnnotations%2CFgenesh%2CGeneID%2CNCBI%20Gnomon
+
+        String url = Annotator.getRootUrl();
+        url += "annotator/?" ;
+        // TODO: I need to get the current location
+        url += "loc="+currentSequence.getName()+":1..1000" ;
+        url += "&highlight=0";
+        url += "&tracklist=0";
+        url += "&tracks=" ;
+
+        List<String> trackList = trackPanel.getTrackList();
+
+        for(int i = 0 ; i < trackList.size() ;i++){
+            url += trackList.get(i);
+            if(i < trackList.size()-1) {
+                url += ",";
+            }
+        }
+        UrlDialogBox urlDialogBox = new UrlDialogBox(url);
         urlDialogBox.setWidth("600px");
 
         urlDialogBox.show();

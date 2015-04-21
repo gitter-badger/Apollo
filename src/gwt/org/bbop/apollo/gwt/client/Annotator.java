@@ -30,27 +30,15 @@ public class Annotator implements EntryPoint {
      * This is the entry point method.
      */
     public void onModuleLoad() {
-        MainPanel mainPanel = MainPanel.getInstance(this);
-
-//        Dictionary dictionary = Dictionary.getDictionary("Options");
-//        String rootUrl = dictionary.get("rootUrl");
-//        mainPanel.setRootUrl(rootUrl);
-
+        MainPanel mainPanel = MainPanel.getInstance();
         RootLayoutPanel rp = RootLayoutPanel.get();
         rp.add(mainPanel);
         rp.setWidgetTopHeight(mainPanel, 0, Style.Unit.PX, 100, Style.Unit.PCT);
 
-
-//        eventBus.addHandler(OrganismChangeEvent.TYPE, new OrganismChangeEventHandler() {
-//            @Override
-//            public void onOrganismChanged(OrganismChangeEvent organismChangeEvent) {
-//            }
-//        });
     }
 
     public static String getRootUrl(){
-        String rootUrl = GWT.getModuleBaseURL().replace("annotator/","");
-        return rootUrl ;
+        return GWT.getModuleBaseURL().replace("annotator/","");
     }
 
 }
