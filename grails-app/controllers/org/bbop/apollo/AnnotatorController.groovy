@@ -20,6 +20,30 @@ class AnnotatorController {
     def preferenceService
 
     def index() {
+
+        println "params ${params}"
+
+        if(params.organism){
+            try {
+                Organism organism = Organism.findById(params.organism as Long )
+                String location = params.loc
+                String sequenceString  = location.split(":")[0]
+                Sequence sequence = Sequence.findByOrganismAndName(organism,sequenceString)
+                String fmin = location.split(":")[1].split("..")[0]
+                String fmax = location.split(":")[1].split("..")[1]
+                preferenceService.setCurrentSequence(permissionService.currentUser,sequence)
+            } catch (e) {
+                log.error "problem parsing the string ${e}"
+            }
+        }
+
+
+//        loc:Group1.3:1..1000,
+//        tracks:Reference sequence,Fgenesh,GeneID,NCBI Gnomon,User-created Annotations
+// tracklist:0, highlight:0
+// organism:5650
+// , format:null, controller:annotator
+
         String uuid = UUID.randomUUID().toString()
         Organism.all.each {
             log.info it.commonName
