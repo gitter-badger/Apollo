@@ -911,7 +911,7 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
 
     }
 
-    void "adding two transcripts "() {
+    void "adding two transcripts merge and undo"() {
 
         given: "the GB40788-RA and GB40787-RA"
         String gb40787String = "{ \"track\": \"Annotations-Group1.10\", \"features\": [{\"location\":{\"fmin\":77860,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"mRNA\"},\"name\":\"GB40787-RA\",\"children\":[{\"location\":{\"fmin\":77860,\"fmax\":77944,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":78049,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":77860,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"CDS\"}}]}], \"operation\": \"add_transcript\" }"
@@ -920,6 +920,7 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
         JSONObject jsonAddTranscriptObject2 = JSON.parse(gb40788String) as JSONObject
         String mergeTranscriptString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" }, { \"uniquename\": \"@TRANSCRIPT2_UNIQUENAME@\" } ], \"operation\": \"merge_transcripts\" }"
         String undoCommandString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" } ], \"operation\": \"undo\", \"count\": 1}"
+        String redoCommandString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" } ], \"operation\": \"redo\", \"count\": 1}"
 
 
         when: "we add three transcripts"
@@ -942,6 +943,7 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
         mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
         mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT2_UNIQUENAME@", uniqueName2)
         undoCommandString = undoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
+        redoCommandString = redoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
         JSONObject commandObject = JSON.parse(mergeTranscriptString) as JSONObject
         JSONObject returnedAfterExonObject = requestHandlingService.mergeTranscripts(commandObject)
 
@@ -966,5 +968,80 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
         assert NonCanonicalFivePrimeSpliceSite.count == 0
         assert NonCanonicalThreePrimeSpliceSite.count == 0
 
+        when: "we redo that operation"
+        requestHandlingService.redo(JSON.parse(redoCommandString) as JSONObject)
+
+        then: "we should see 1 genes, 2 transcripts, 5 exons, 2 CDS, 1 3' noncanonical splice site and 1 5' noncanonical splice site"
+        assert Gene.count == 1
+        assert MRNA.count == 1
+        assert CDS.count == 1
+        assert Exon.count == 5
+        assert NonCanonicalFivePrimeSpliceSite.count == 1
+        assert NonCanonicalThreePrimeSpliceSite.count == 1
+    }
+
+
+    void "adding one transcript and split and undo "() {
+
+        given: "add GB40787-RA"
+        String gb40787String = "{ \"track\": \"Annotations-Group1.10\", \"features\": [{\"location\":{\"fmin\":77860,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"mRNA\"},\"name\":\"GB40787-RA\",\"children\":[{\"location\":{\"fmin\":77860,\"fmax\":77944,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":78049,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":77860,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"CDS\"}}]}], \"operation\": \"add_transcript\" }"
+        JSONObject jsonAddTranscriptObject1 = JSON.parse(gb40787String) as JSONObject
+        String splitTranscriptString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" }, { \"uniquename\": \"@TRANSCRIPT2_UNIQUENAME@\" } ], \"operation\": \"merge_transcripts\" }"
+        String undoCommandString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" } ], \"operation\": \"undo\", \"count\": 1}"
+        String redoCommandString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" } ], \"operation\": \"redo\", \"count\": 1}"
+
+
+        when: "we add three transcripts"
+        requestHandlingService.addTranscript(jsonAddTranscriptObject1)
+
+
+        then: "we should see 2 genes, 3 transcripts, 7 exons, 3 CDS, no noncanonical splice sites"
+        assert Gene.count == 1
+        assert MRNA.count == 1
+        assert CDS.count == 1
+        assert Exon.count == 2
+        assert NonCanonicalFivePrimeSpliceSite.count == 0
+        assert NonCanonicalThreePrimeSpliceSite.count == 0
+
+
+        when: "we merge the transcripts"
+        String uniqueName1 = MRNA.findByName("GB40787-RA-00001").uniqueName
+        splitTranscriptString = splitTranscriptString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
+        undoCommandString = undoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
+        redoCommandString = redoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
+        JSONObject commandObject = JSON.parse(splitTranscriptString) as JSONObject
+        JSONObject returnedAfterExonObject = requestHandlingService.splitTranscript(commandObject)
+
+
+        then: "we should see 2 gene, 2 transcripts, 2 exons, 2 CDS, 1 3' noncanonical splice site and 1 5' noncanonical splice site"
+        def allFeatures = Feature.all
+        assert Gene.count == 2
+        assert MRNA.count == 2
+        assert Exon.count == 2
+        assert CDS.count == 2
+        assert NonCanonicalFivePrimeSpliceSite.count == 1
+        assert NonCanonicalThreePrimeSpliceSite.count == 1
+
+        when: "we undo that operation"
+        requestHandlingService.undo(JSON.parse(undoCommandString) as JSONObject)
+
+        then: "we should see 2 genes, 3 transcripts, 7 exons, 3 CDS, no noncanonical splice sites"
+        assert Gene.count == 1
+        assert MRNA.count == 1
+        assert CDS.count == 1
+        assert Exon.count == 2
+        assert NonCanonicalFivePrimeSpliceSite.count == 0
+        assert NonCanonicalThreePrimeSpliceSite.count == 0
+
+        when: "we redo that operation"
+        requestHandlingService.redo(JSON.parse(redoCommandString) as JSONObject)
+
+        then: "we should see 2 genes, 3 transcripts, 7 exons, 3 CDS, no noncanonical splice sites"
+        assert Gene.count == 2
+        assert MRNA.count == 2
+        assert CDS.count == 2
+        assert Exon.count == 2
+        assert NonCanonicalFivePrimeSpliceSite.count == 1
+        assert NonCanonicalThreePrimeSpliceSite.count == 1
     }
 }
