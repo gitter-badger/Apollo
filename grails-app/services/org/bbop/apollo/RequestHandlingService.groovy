@@ -2032,6 +2032,13 @@ class RequestHandlingService {
         Transcript transcript1 = Transcript.findByUniqueName(jsonTranscript1.getString(FeatureStringEnum.UNIQUENAME.value))
         Transcript transcript2 = Transcript.findByUniqueName(jsonTranscript2.getString(FeatureStringEnum.UNIQUENAME.value))
         JSONObject transcript2JSONObject = featureService.convertFeatureToJSON(transcript2)
+
+
+        JSONArray oldTranscriptArray = new JSONArray()
+        JSONObject transcript1JSONObject = featureService.convertFeatureToJSON(transcript1) // to track history
+        oldTranscriptArray.add(transcript1JSONObject)
+        oldTranscriptArray.add(transcript2JSONObject)
+
 //        // cannot merge transcripts from different strands
         if (!transcript1.getStrand().equals(transcript2.getStrand())) {
             throw new AnnotationException("You cannot merge transcripts on opposite strands");
@@ -2057,6 +2064,12 @@ class RequestHandlingService {
             updateFeatureContainer.getJSONArray(FeatureStringEnum.FEATURES.value).put(featureService.convertFeatureToJSON(transcript));
         }
         deleteFeatureContainer.getJSONArray(FeatureStringEnum.FEATURES.value).put(transcript2JSONObject);
+
+        JSONObject newJsonObject = featureService.convertFeatureToJSON(transcript1)
+        JSONArray newJsonArray = new JSONArray()
+        newJsonArray.add(newJsonObject)
+        // we are merging so we should have two OLD separate features and one new one
+        featureEventService.addNewFeatureEvent(FeatureOperation.MERGE_TRANSCRIPTS, gene1.name, transcript1.uniqueName, inputObject, oldTranscriptArray, newJsonArray, permissionService.getActiveUser(inputObject))
 
         AnnotationEvent deleteAnnotationEvent = new AnnotationEvent(
                 features: deleteFeatureContainer

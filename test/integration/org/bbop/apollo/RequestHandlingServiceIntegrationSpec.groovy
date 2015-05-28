@@ -860,7 +860,9 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
         assert NonCanonicalThreePrimeSpliceSite.count == 0
     }
 
-
+    /**
+     * https://github.com/GMOD/Apollo/issues/73
+     */
     void "when exons from three isoforms, genes should merge on overlap and split on separation"() {
 
         given: "Three exons we are turning into three transcripts using Group 1.10 GB40782-RA"
@@ -906,6 +908,63 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
 
         then: "we will have the same 2 genes and 3 transcripts, but transcript will belong to the other gene"
 
+
+    }
+
+    void "adding two transcripts "() {
+
+        given: "the GB40788-RA and GB40787-RA"
+        String gb40787String = "{ \"track\": \"Annotations-Group1.10\", \"features\": [{\"location\":{\"fmin\":77860,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"mRNA\"},\"name\":\"GB40787-RA\",\"children\":[{\"location\":{\"fmin\":77860,\"fmax\":77944,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":78049,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":77860,\"fmax\":78076,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"CDS\"}}]}], \"operation\": \"add_transcript\" }"
+        String gb40788String = "{ \"track\": \"Annotations-Group1.10\", \"features\": [{\"location\":{\"fmin\":65107,\"fmax\":75367,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"mRNA\"},\"name\":\"GB40788-RA\",\"children\":[{\"location\":{\"fmin\":65107,\"fmax\":65286,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":71477,\"fmax\":71651,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":75270,\"fmax\":75367,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"exon\"}},{\"location\":{\"fmin\":65107,\"fmax\":75367,\"strand\":-1},\"type\":{\"cv\":{\"name\":\"sequence\"},\"name\":\"CDS\"}}]}], \"operation\": \"add_transcript\" }"
+        JSONObject jsonAddTranscriptObject1 = JSON.parse(gb40787String) as JSONObject
+        JSONObject jsonAddTranscriptObject2 = JSON.parse(gb40788String) as JSONObject
+        String mergeTranscriptString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" }, { \"uniquename\": \"@TRANSCRIPT2_UNIQUENAME@\" } ], \"operation\": \"merge_transcripts\" }"
+        String undoCommandString = "{ \"track\": \"Annotations-Group1.10\", \"features\": [ { \"uniquename\": \"@TRANSCRIPT1_UNIQUENAME@\" } ], \"operation\": \"undo\", \"count\": 1}"
+
+
+        when: "we add three transcripts"
+        requestHandlingService.addTranscript(jsonAddTranscriptObject1)
+        requestHandlingService.addTranscript(jsonAddTranscriptObject2)
+
+
+        then: "we should see 2 genes, 3 transcripts, 7 exons, 3 CDS, no noncanonical splice sites"
+        assert Gene.count == 1
+        assert MRNA.count == 2
+        assert CDS.count == 2
+        assert Exon.count == 5
+        assert NonCanonicalFivePrimeSpliceSite.count == 0
+        assert NonCanonicalThreePrimeSpliceSite.count == 0
+
+
+        when: "we merge the transcripts"
+        String uniqueName1 = MRNA.findByName("GB40787-RA-00001").uniqueName
+        String uniqueName2 = MRNA.findByName("GB40788-RA-00001").uniqueName
+        mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
+        mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT2_UNIQUENAME@", uniqueName2)
+        undoCommandString = undoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
+        JSONObject commandObject = JSON.parse(mergeTranscriptString) as JSONObject
+        JSONObject returnedAfterExonObject = requestHandlingService.mergeTranscripts(commandObject)
+
+
+        then: "we should see 1 gene, 2 transcripts, 5 exons, 2 CDS, 1 3' noncanonical splice site and 1 5' noncanonical splice site"
+        def allFeatures = Feature.all
+        assert Gene.count == 1
+        assert MRNA.count == 1
+        assert Exon.count == 5
+        assert CDS.count == 1
+        assert NonCanonicalFivePrimeSpliceSite.count == 1
+        assert NonCanonicalThreePrimeSpliceSite.count == 1
+
+        when: "we undo that operation"
+        requestHandlingService.undo(JSON.parse(undoCommandString) as JSONObject)
+
+        then: "we should see 2 genes, 3 transcripts, 7 exons, 3 CDS, no noncanonical splice sites"
+        assert Gene.count == 1
+        assert MRNA.count == 2
+        assert CDS.count == 2
+        assert Exon.count == 5
+        assert NonCanonicalFivePrimeSpliceSite.count == 0
+        assert NonCanonicalThreePrimeSpliceSite.count == 0
 
     }
 }
