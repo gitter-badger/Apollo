@@ -32,26 +32,10 @@ class FeatureEventService {
     }
 
     FeatureEvent addNewFeatureEventWithUser(FeatureOperation featureOperation, String name, String uniqueName, JSONObject commandObject, JSONObject jsonObject, User user) {
-
-        FeatureEvent.executeUpdate("update FeatureEvent  fe set fe.current = :current where fe.uniqueName = :uniqueName", [current: false, uniqueName: uniqueName]);
         JSONArray newFeatureArray = new JSONArray()
         newFeatureArray.add(jsonObject)
-        FeatureEvent featureEvent = new FeatureEvent(
-                editor: user
-                , name: name
-                , uniqueName: uniqueName
-                , operation: featureOperation.name()
-                , current: true
-                , originalJsonCommand: commandObject.toString()
-                , newFeaturesJsonArray: newFeatureArray.toString()
-                , oldFeaturesJsonArray: new JSONArray().toString()
-                , dateCreated: new Date()
-                , lastUpdated: new Date()
-        ).save()
-
-
-        return featureEvent
-
+        JSONArray oldFeatureArray = new JSONArray()
+        return addNewFeatureEvent(featureOperation,name,uniqueName,commandObject,oldFeatureArray,newFeatureArray,user)
     }
 
     FeatureEvent addNewFeatureEventWithUser(FeatureOperation featureOperation, Feature feature, JSONObject inputCommand, User user) {
@@ -79,6 +63,7 @@ class FeatureEventService {
             featureEvent1.save()
             featureEvent2.save()
         }
+        else
         if(featureOperation==FeatureOperation.SPLIT_TRANSCRIPT){
             // not handled yet
         }

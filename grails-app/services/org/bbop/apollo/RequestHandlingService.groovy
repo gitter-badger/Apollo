@@ -1551,21 +1551,19 @@ class RequestHandlingService {
         JSONObject jsonTranscript = features.getJSONObject(0)
 
         Transcript transcript = Transcript.findByUniqueName(jsonTranscript.getString(FeatureStringEnum.UNIQUENAME.value));
+        JSONObject oldJsonObject = featureService.convertFeatureToJSON(transcript)
         for (int i = 1; i < features.length(); ++i) {
             JSONObject jsonExon = features.getJSONObject(i)
             Exon exon = Exon.findByUniqueName(jsonExon.getString(FeatureStringEnum.UNIQUENAME.value));
 
             exonService.deleteExon(transcript, exon);
-
-//            exon = Exon.findByUniqueName(jsonExon.getString(FeatureStringEnum.UNIQUENAME.value));
-//            if(exon){
-//                exon.delete(flush:true)
-//            }
-//            Exon.deleteAll(exon,flush: true)
         }
 
         Feature topLevelFeature = featureService.getTopLevelFeature(transcript)
         JSONObject featureContainer = createJSONFeatureContainer(featureService.convertFeatureToJSON(topLevelFeature))
+
+        JSONObject newJsonObject = featureService.convertFeatureToJSON(transcript)
+        featureEventService.addNewFeatureEvent(FeatureOperation.DELETE_EXON, transcriptService.getGene(transcript).name, transcript.uniqueName, inputObject, oldJsonObject, newJsonObject, permissionService.getActiveUser(inputObject))
 
         AnnotationEvent annotationEvent = new AnnotationEvent(
                 features: featureContainer
