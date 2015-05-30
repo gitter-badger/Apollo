@@ -3,6 +3,7 @@ package org.bbop.apollo
 import grails.converters.JSON
 import grails.test.spock.IntegrationSpec
 import org.bbop.apollo.gwt.shared.FeatureStringEnum
+import org.bbop.apollo.history.FeatureOperation
 import org.codehaus.groovy.grails.web.json.JSONArray
 import org.codehaus.groovy.grails.web.json.JSONObject
 
@@ -929,10 +930,11 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
 
 
         then: "we should see 2 genes, 3 transcripts, 7 exons, 3 CDS, no noncanonical splice sites"
-        assert Gene.count == 1
+        assert Gene.count == 2
         assert MRNA.count == 2
         assert CDS.count == 2
         assert Exon.count == 5
+        assert FeatureEvent.count == 2
         assert NonCanonicalFivePrimeSpliceSite.count == 0
         assert NonCanonicalThreePrimeSpliceSite.count == 0
 
@@ -940,10 +942,10 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
         when: "we merge the transcripts"
         String uniqueName1 = MRNA.findByName("GB40787-RA-00001").uniqueName
         String uniqueName2 = MRNA.findByName("GB40788-RA-00001").uniqueName
-        mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
-        mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT2_UNIQUENAME@", uniqueName2)
-        undoCommandString = undoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
-        redoCommandString = redoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName1)
+        mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName2)
+        mergeTranscriptString = mergeTranscriptString.replaceAll("@TRANSCRIPT2_UNIQUENAME@", uniqueName1)
+        undoCommandString = undoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName2)
+        redoCommandString = redoCommandString.replaceAll("@TRANSCRIPT1_UNIQUENAME@", uniqueName2)
         JSONObject commandObject = JSON.parse(mergeTranscriptString) as JSONObject
         JSONObject returnedAfterExonObject = requestHandlingService.mergeTranscripts(commandObject)
 
@@ -954,6 +956,15 @@ class RequestHandlingServiceIntegrationSpec extends IntegrationSpec {
         assert MRNA.count == 1
         assert Exon.count == 5
         assert CDS.count == 1
+        assert FeatureEvent.count == 3
+        assert FeatureEvent.countByUniqueName(uniqueName2)==2
+        assert FeatureEvent.countByUniqueName(uniqueName1)==1
+        // the first name is a transcript name . . .
+        assert FeatureEvent.countByNameAndCurrent("GB40787-RA-00001",false)==1
+        assert FeatureEvent.countByNameAndCurrent("GB40788-RA-00001",false)==1
+        assert FeatureEvent.countByNameAndCurrent("GB40788-RA",true)==1
+        assert FeatureEvent.countByOperation(FeatureOperation.ADD_TRANSCRIPT)==2
+        assert FeatureEvent.countByOperation(FeatureOperation.MERGE_TRANSCRIPTS)==1
         assert NonCanonicalFivePrimeSpliceSite.count == 1
         assert NonCanonicalThreePrimeSpliceSite.count == 1
 

@@ -62,14 +62,21 @@ class FeatureEventService {
             featureEvent2.newFeaturesJsonArray = oldJsonArray.toString()
             featureEvent1.save()
             featureEvent2.save()
+
+            List<String> uniqueNames = new ArrayList<>()
+            uniqueNames.add(uniqueName1)
+            uniqueNames.add(uniqueName2)
+            FeatureEvent.executeUpdate("update FeatureEvent  fe set fe.current = false where fe.uniqueName in(:uniqueNames)", [uniqueNames: uniqueNames])
         }
         else
         if(featureOperation==FeatureOperation.SPLIT_TRANSCRIPT){
             // not handled yet
         }
+        else{
+            FeatureEvent.executeUpdate("update FeatureEvent  fe set fe.current = false where fe.uniqueName = :uniqueName", [uniqueName: uniqueName])
+        }
 
 
-        FeatureEvent.executeUpdate("update FeatureEvent  fe set fe.current = false where fe.uniqueName = :uniqueName", [uniqueName: uniqueName])
         FeatureEvent featureEvent = new FeatureEvent(
                 editor: user
                 , name: name
