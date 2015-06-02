@@ -146,11 +146,24 @@ class FeatureEventService {
         // TODO: this should find the features of all OLD feature events
         Sequence sequence = Feature.findByUniqueName(uniqueName).featureLocation.sequence
 
-        JSONObject deleteCommandObject = new JSONObject()
+
         JSONArray featuresArray = new JSONArray()
-        JSONObject featureToDelete = new JSONObject()
-        featureToDelete.put(FeatureStringEnum.UNIQUENAME.value, uniqueName)
-        featuresArray.add(featureToDelete)
+        FeatureEvent currentFeatureEvent = FeatureEvent.findByUniqueNameAndCurrent(uniqueName,true)
+
+        JSONObject deleteCommandObject = new JSONObject()
+        JSONArray currentFeatureArray = JSON.parse(currentFeatureEvent.newFeaturesJsonArray) as JSONArray
+
+
+        println "current features array: ${currentFeatureArray.size()}"
+
+        for(int i = 0 ; i < currentFeatureArray.size() ; i++){
+            String uniqueNameToDelete = currentFeatureArray.getJSONObject(i).getString(FeatureStringEnum.UNIQUENAME.value)
+            JSONObject smallDeleteObject = new JSONObject()
+            smallDeleteObject.put(FeatureStringEnum.UNIQUENAME.value,uniqueNameToDelete)
+            featuresArray.add(smallDeleteObject)
+        }
+
+
         deleteCommandObject.put(FeatureStringEnum.FEATURES.value, featuresArray)
         deleteCommandObject = permissionService.copyUserName(inputObject, deleteCommandObject)
         deleteCommandObject.put(FeatureStringEnum.SUPPRESS_EVENTS.value, true)

@@ -15,6 +15,7 @@ class FeatureEvent {
 
     String name  // this is the name of the top-level feature (typically gene) during this event
     String uniqueName // from original top-level feature
+    String splitTranscriptUniqueName // in case of split, need to track other unique identifier
     String originalJsonCommand
     String newFeaturesJsonArray
     String oldFeaturesJsonArray
@@ -26,6 +27,7 @@ class FeatureEvent {
         newFeaturesJsonArray nullable: true
         oldFeaturesJsonArray nullable: true
         name nullable: false, blank: false
+        splitTranscriptUniqueName nullable: true, blank: false
     }
 
     static mapping = {
