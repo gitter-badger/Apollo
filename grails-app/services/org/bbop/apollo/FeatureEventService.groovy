@@ -143,6 +143,7 @@ class FeatureEventService {
         }
 
 
+        // TODO: this should find the features of all OLD feature events
         Sequence sequence = Feature.findByUniqueName(uniqueName).featureLocation.sequence
 
         JSONObject deleteCommandObject = new JSONObject()
@@ -168,23 +169,20 @@ class FeatureEventService {
         JSONArray jsonArray = (JSONArray) JSON.parse(featureEvent.newFeaturesJsonArray)
         JSONObject originalCommandObject = (JSONObject) JSON.parse(featureEvent.originalJsonCommand)
         log.debug "array to add size: ${jsonArray.size()} "
+        JSONArray featuresToAddArray = new JSONArray()
+        JSONObject addCommandObject = new JSONObject()
+        addCommandObject.put(FeatureStringEnum.FEATURES.value, featuresToAddArray)
+        addCommandObject = permissionService.copyUserName(inputObject, addCommandObject)
+        addCommandObject.put(FeatureStringEnum.SUPPRESS_HISTORY.value, true)
+        addCommandObject.put(FeatureStringEnum.SUPPRESS_EVENTS.value, true)
         for (int i = 0; i < jsonArray.size(); i++) {
             JSONObject jsonFeature = jsonArray.getJSONObject(i)
-
-            JSONObject addCommandObject = new JSONObject()
-            JSONArray featuresToAddArray = new JSONArray()
             featuresToAddArray.add(jsonFeature)
-            addCommandObject.put(FeatureStringEnum.FEATURES.value, featuresToAddArray)
 
             // we have to explicitly set the track (if we have features ... which we should)
             if (!addCommandObject.containsKey(FeatureStringEnum.TRACK.value) && featuresToAddArray.size() > 0) {
                 addCommandObject.put(FeatureStringEnum.TRACK.value, featuresToAddArray.getJSONObject(i).getString(FeatureStringEnum.SEQUENCE.value))
             }
-
-            addCommandObject = permissionService.copyUserName(inputObject, addCommandObject)
-
-            addCommandObject.put(FeatureStringEnum.SUPPRESS_HISTORY.value, true)
-            addCommandObject.put(FeatureStringEnum.SUPPRESS_EVENTS.value, true)
 
             JSONObject returnObject
             if (featureService.isJsonTranscript(jsonFeature)) {
